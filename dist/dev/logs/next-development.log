@@ -1,0 +1,8 @@
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":"  We detected TypeScript in your project and reconfigured your tsconfig.json file for you."}
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":"  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:\n"}
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":"  \t- include was updated to add 'dist/types/**/*.ts'"}
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":"  \t- include was updated to add 'dist/dev/types/**/*.ts'"}
+{"timestamp":"00:00:00.450","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:00.508","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:02.843","source":"Server","level":"WARN","message":"⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using \"http://localhost:3000\". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase"}

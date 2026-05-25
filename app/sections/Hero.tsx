@@ -19,7 +19,7 @@ export function Hero() {
             <div>
               <div className="flex items-center gap-2 mb-4"><div className="w-5 h-px bg-[#968766]" /><span className="text-caption">Видеогид</span></div>
               
-              <svg width="300" height="auto" viewBox="0 0 2249 351" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="400" height="auto" viewBox="0 0 2249 351" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clipPath="url(#clip0_2010_5)">
 <path fillRule="evenodd" clipRule="evenodd" d="M725.949 295.078C725.949 311.984 724.403 324.249 721.255 331.872H748.074V295.078H725.921H725.949ZM756.086 331.872H763.648V351H756.395V338.735H713.636V351H706.411V331.872H712.793C716.475 326.471 718.359 311.928 718.331 288.215H756.086V331.872Z" fill="white"/>
 <path d="M992.793 331.872H1021.83V288.215H1029.87V331.872H1037.44V351H1030.15V338.735H984.809V288.215H992.793V331.872Z" fill="white"/>
