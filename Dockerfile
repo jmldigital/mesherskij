@@ -1,9 +1,17 @@
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
+
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+
 COPY package.json bun.lockb* ./
 RUN bun install
 COPY . .
 RUN bun run build
+
+
 
 FROM oven/bun:1-alpine AS runner
 WORKDIR /app
