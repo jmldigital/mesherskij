@@ -12,10 +12,10 @@ export function BackgroundMedia({ videoUrl, imageUrl, isTransitioning }: Backgro
   const hasMedia = Boolean(videoUrl || imageUrl);
 
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-      {/* Fallback gradient when no media */}
+    <div className="absolute inset-0 z-0 overflow-hidden" style={{ backgroundColor: '#28282D' }}>
+      {/* Fallback when no media */}
       {!hasMedia && (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-black to-slate-900" />
+        <div className="absolute inset-0" style={{ backgroundColor: '#28282D' }} />
       )}
 
       <AnimatePresence mode="wait">
@@ -50,7 +50,7 @@ export function BackgroundMedia({ videoUrl, imageUrl, isTransitioning }: Backgro
       </AnimatePresence>
 
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0" style={{ backgroundColor: 'rgba(40, 40, 45, 0.5)' }} />
 
       {/* Transition overlay */}
       <AnimatePresence>
@@ -60,7 +60,8 @@ export function BackgroundMedia({ videoUrl, imageUrl, isTransitioning }: Backgro
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/70 z-10"
+            className="absolute inset-0 z-10"
+            style={{ backgroundColor: 'rgba(40, 40, 45, 0.7)' }}
           />
         )}
       </AnimatePresence>

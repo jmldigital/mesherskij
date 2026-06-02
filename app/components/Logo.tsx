@@ -2,11 +2,14 @@
 
 export function LogoMonogram({ size = 32 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" className="flex-shrink-0">
-      <circle cx="18" cy="18" r="17.5" stroke="#968766" strokeWidth="0.5" fill="none" opacity="0.4" />
-      <circle cx="18" cy="18" r="14" fill="#968766" opacity="0.9" />
-      <text x="18" y="22" textAnchor="middle" fontFamily="Inter, Helvetica Neue, Arial" fontWeight="300" fontSize="14" letterSpacing="1" fill="white">M</text>
-    </svg>
+    // <svg width={size} height={size} viewBox="0 0 36 36" fill="none" className="flex-shrink-0">
+    //   <circle cx="18" cy="18" r="17.5" stroke="#968766" strokeWidth="0.5" fill="none" opacity="0.4" />
+    //   <circle cx="18" cy="18" r="14" fill="#968766" opacity="0.9" />
+    //   <text x="18" y="22" textAnchor="middle" fontFamily="Inter, Helvetica Neue, Arial" fontWeight="300" fontSize="14" letterSpacing="1" fill="white">M</text>
+    // </svg>
+
+     <img src="/monogram.svg" alt="Logo" className="w-16 h-auto mx-auto" />
+
   );
 }
 

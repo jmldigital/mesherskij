@@ -91,6 +91,14 @@ export async function getResultByHash(pathHash: string): Promise<QuizResult | nu
 }
 
 /**
+ * Получить публичный URL иконки из Storage (bucket `icon`)
+ */
+export function getIconUrl(path: string): string {
+  const { data } = supabase.storage.from("icon").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/**
  * Получить весь путь от start до текущего узла (для отображения summary)
  */
 export async function getPathNodes(nodeIds: string[]): Promise<QuizNode[]> {

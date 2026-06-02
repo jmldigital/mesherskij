@@ -15,8 +15,8 @@
 
   --bg: #F2F0EC;
   --bg-deep: #E8E5DE;
-  --fg: #1A1A1A;
-  --fg-secondary: #3D3D3D;
+  --fg: #28282D;
+  --fg-secondary: #AEA79A;
   --cloudy: #AEA79A;
   --cloudy-light: #C4BDB0;
   --jumbo: #898B80;
@@ -45,13 +45,13 @@
 
 /* ─── Dark Mode ─── */
 [data-theme="dark"] {
-  --bg: #121210;
-  --bg-deep: #1A1A1A;
-  --fg: #F2F0EC;
-  --fg-secondary: #C4BDB0;
-  --cloudy: #6B665C;
+  --bg: #28282D;
+  --bg-deep: #1E1E22;
+  --fg: #FFFFFF;
+  --fg-secondary: #AEA79A;
+  --cloudy: #AEA79A;
   --cloudy-light: #898B80;
-  --jumbo: #7A7568;
+  --jumbo: #898B80;
 
   --glass-bg: rgba(255, 255, 255, 0.02);
   --glass-bg-hover: rgba(255, 255, 255, 0.04);
@@ -69,6 +69,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  background-color: var(--bg);
+  color: var(--fg);
   transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 
@@ -201,6 +203,30 @@ body {
 .btn-liquid-filled { background: linear-gradient(135deg, var(--granite), var(--granite-light)); color: white; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 4px 16px rgba(150,135,102,0.3); }
 .btn-liquid-filled::before { background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.08) 30%, transparent 50%, transparent 70%, rgba(255,255,255,0.08) 85%, rgba(255,255,255,0.3) 100%); }
 .btn-liquid-filled:hover { box-shadow: 0 8px 28px rgba(150,135,102,0.4); }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGO PULSE
+   ═══════════════════════════════════════════════════════════════ */
+
+.logo-pulse {
+  animation: logoPulse 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 12px rgba(150,135,102,0.1)) blur(0px);
+  }
+  45% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 80px rgba(150,135,102,0.7)) blur(3px);
+  }
+  55% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 80px rgba(150,135,102,0.7)) blur(3px);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    NAVIGATION

@@ -23,13 +23,22 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         transition={{ delay: 0.2, duration: 0.5 }}
         className="flex flex-col items-center gap-8"
       >
-        <LogoMonogram size={64} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
+          <div className="logo-pulse">
+            <LogoMonogram size={64} />
+          </div>
+        </motion.div>
 
         <div className="text-center">
-          <h1 className="text-display text-white mb-4">Meshchersky 1</h1>
-          <p className="text-body text-white/70 max-w-md">
+          <img src="/logo-text.svg" alt="Logo" className="w-96 h-auto mx-auto" />
+          <h1 className="text-display text-white mb-4"></h1>
+          {/* <p className="text-body text-white/70 max-w-md">
             Ответьте на несколько вопросов, и мы подберём для вас идеальное видео
-          </p>
+          </p> */}
         </div>
 
         <motion.button

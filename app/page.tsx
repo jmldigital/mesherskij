@@ -29,7 +29,7 @@ export default function Home() {
     : 'question';
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black">
+    <main className="relative min-h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Фоновое видео/изображение — меняется при смене узла */}
       <BackgroundMedia
         videoUrl={currentNode?.video_url}
