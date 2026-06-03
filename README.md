@@ -1,6 +1,8 @@
-# Meshchersky 1 — Видеоплатформа
+# Meshchersky 1 — Адаптивный квиз
 
-Каталог видео-контента с категориями (сценариями), кастомным видеоплеером и дизайн-системой «Liquid Glass». Сборка — статический экспорт (SSG), данные хранятся в Supabase (PostgreSQL + Storage).
+Пошаговый квиз на графе вопросов произвольной глубины. Пользователь проходит цепочку выборов (пол → сценарий → состав компании → подтип), в конце получает персональное видео. Глубина квиза определяется графом в базе данных, не зашита в код.
+
+**Ключевая фича:** если завтра добавить 3 новых уровня вопросов в БД — квиз автоматически станет длиннее без изменения кода фронтенда.
 
 ---
 
@@ -8,12 +10,13 @@
 
 | Технология | Назначение |
 |------------|------------|
-| **Next.js 16** (App Router) | Фреймворк. Режим сборки — `output: "export"` (статический HTML) |
+| **Next.js 16** (App Router) | Фреймворк. Статический экспорт (`output: "export"`) |
 | **React 19** | UI-библиотека |
 | **TypeScript** | Типизация |
 | **Tailwind CSS 3** | Утилитарные стили |
-| **Supabase** | База данных (PostgreSQL) + файловое хранилище для видео/изображений |
-| **Lucide React** | Иконки |
+| **Framer Motion** | Анимации переходов между шагами квиза |
+| **Supabase** | PostgreSQL + Storage (видео, иконки, изображения) |
+| **Lucide React** | Иконки (в системных компонентах) |
 | **Bun** | Пакетный менеджер и рантайм |
 
 ---
@@ -22,172 +25,247 @@
 
 ```
 app/
-├── components/          # Переиспользуемые React-компоненты
-│   ├── CategoryCard.tsx    # Карточка категории в сетке
-│   ├── Header.tsx          # Шапка (логотип, навигация, поиск, тема)
-│   ├── Logo.tsx            # SVG-логотипы (Monogram + Text)
-│   ├── ThemeToggle.tsx     # Переключатель светлой/тёмной темы
-│   ├── VideoList.tsx       # Плейлист (список видео справа от плеера)
-│   └── VideoPlayer.tsx     # Кастомный HTML5-видеоплеер с контролами
+├── sections/            # Экраны (pages) квиза
+│   ├── WelcomeScreen.tsx      # Стартовый экран с фонарик-эффектом
+│   ├── QuestionScreen.tsx     # Экран вопроса с вариантами (повторяется N раз)
+│   └── ResultScreen.tsx       # Финальное видео + summary пути
+│
+├── components/          # Переиспользуемые компоненты
+│   ├── QuizOptionCard.tsx     # Карточка варианта (Liquid Glass + иконка)
+│   ├── QuizProgress.tsx       # Индикатор прогресса (точки)
+│   ├── QuizNavigation.tsx     # Кнопки «Назад» / «В начало»
+│   ├── BackgroundMedia.tsx    # Фоновое видео/изображение для шагов
+│   ├── ResultPlayer.tsx       # Кастомный видеоплеер для результата
+│   ├── Logo.tsx               # SVG-логотипы (Monogram + Text)
+│   └── ThemeToggle.tsx        # Переключатель темы (сейчас отключён)
+│
+├── hooks/
+│   └── useQuizState.ts        # Управление состоянием квиза + localStorage
+│
 ├── context/
-│   └── ThemeContext.tsx    # React Context для темы (light/dark) + localStorage
+│   └── ThemeContext.tsx       # React Context для темы (dark по умолчанию)
+│
 ├── lib/
-│   ├── api.ts              # Все запросы к Supabase (БД + Storage)
-│   └── supabase.ts         # Инициализация клиента Supabase
-├── sections/            # Секции главной страницы
-│   ├── Categories.tsx      # Сетка категорий (загрузка из Supabase)
-│   ├── Footer.tsx          # Подвал
-│   ├── Hero.tsx            # Геро-секция с Bento-гридом и фоновым видео
-│   └── Player.tsx          # Секция плеера + плейлиста
+│   ├── api.ts                 # Все запросы к Supabase
+│   └── supabase.ts            # Инициализация клиента Supabase
+│
 ├── types/
-│   └── index.ts            # TypeScript-интерфейсы (Scenario, Video, Photo)
-├── globals.css             # Глобальные стили + дизайн-система «Liquid Glass»
-├── layout.tsx              # Корневой layout (шрифт Inter, метаданные SEO)
-└── page.tsx                # Главная страница (состояние фильтров + поиска)
-public/                    # Статические файлы (видео, изображения)
-next.config.ts             # Конфиг Next.js (статический экспорт)
-tailwind.config.ts         # Конфиг Tailwind
+│   └── index.ts               # TypeScript-интерфейсы
+│
+├── globals.css               # Дизайн-система Liquid Glass + цвета + анимации
+├── layout.tsx                # Корневой layout (шрифт Inter, метаданные)
+└── page.tsx                  # Главная страница — единый экран с 3 состояниями
+
+public/                        # Статические файлы
+├── img-006.jpg               # Фон WelcomeScreen (шишка на сосне)
+├── logo-text.svg             # Текстовый логотип
+├── monogram.svg              # Монограмма
+└── ... (прочие медиа)
 ```
 
 ---
 
 ## 🏛️ Архитектура приложения
 
-Главная страница (`page.tsx`) управляет двумя глобальными состояниями:
-- `activeCategory` — ID выбранной категории (сценария)
-- `searchQuery` — текст поиска по видео
+Главная страница (`page.tsx`) управляет тремя глобальными состояниями через хук `useQuizState`:
 
 ```
-page.tsx (activeCategory, searchQuery)
-└── ThemeProvider
-    └── PageContent
-        ├── Header          ← searchQuery (поисковый ввод)
-        ├── Hero            ← статическая секция
-        ├── Categories      ← activeCategory (выбор/сброс категории)
-        ├── Player          ← activeCategory + searchQuery (плеер + плейлист)
-        └── Footer          ← статическая секция
+page.tsx
+├── BackgroundMedia              ← фоновое видео/изображение текущего узла
+├── AnimatePresence
+│   ├── WelcomeScreen            ← до старта (currentNode === null)
+│   ├── QuestionScreen           ← шаги выбора (isComplete === false)
+│   │   └── QuizOptionCard[]     ← варианты ответа
+│   └── ResultScreen             ← финал (лист графа)
+│       └── ResultPlayer         ← персональное видео
+└── QuizNavigation               ← «Назад» / «В начало»
 ```
+
+**Принцип:** нет жёсткого списка экранов. Только 3 типа, переключаемые динамически:
+- `!currentNode` → Welcome
+- `isComplete` → Result
+- иначе → Question (может повторяться 3, 5, 15 раз — определяет граф БД)
 
 ---
 
-## 🧩 Описание компонентов и секций
+## 🧩 Описание модулей
 
-### Секции (`app/sections/`)
+### `app/hooks/useQuizState.ts` — ядро квиза
 
-| Компонент | Тип | Описание |
-|-----------|-----|----------|
-| **Hero.tsx** | Server Component | Фоновое видео `forest.mp4` + Bento-грид из стеклянных карточек: заголовок, CTA, превью видео, статистика, быстрые ссылки, логотип |
-| **Categories.tsx** | Client Component | Загружает сценарии из Supabase (`getScenarios`). Скелетон-загрузка. Горизонтальная сетка. Кнопка «All» для сброса фильтра |
-| **Player.tsx** | Client Component | Загружает видео из Supabase. Фильтрация по категории + поиск. Двухколоночный layout: плеер слева, плейлист справа |
-| **Footer.tsx** | Server Component | Логотип, навигация, копирайт |
+Центральный хук состояния. Хранит и логику переходов между узлами графа.
 
-### Компоненты (`app/components/`)
+| Поле / Метод | Назначение |
+|--------------|------------|
+| `currentNode` | Текущий узел графа (вопрос) |
+| `options` | Дочерние узлы — варианты ответа |
+| `path` | Полная история выборов пользователя |
+| `isComplete` | Флаг завершения (дошли до листа графа) |
+| `result` | Финальное видео из `quiz_results` |
+| `startQuiz()` | Загружает стартовый узел (`slug = 'start'`) и его детей |
+| `selectOption(id)` | Выбор варианта → загрузка его детей. Если детей нет — это лист, загружает `result` |
+| `goBack()` | Возврат на шаг назад по `path` |
+| `reset()` | Сброс в начало + очистка `localStorage` |
+| **localStorage** | Сохраняет `quiz_progress` (slug'ы узлов) — восстановление при перезагрузке |
 
-| Компонент | Тип | Описание |
-|-----------|-----|----------|
-| **Header.tsx** | Client Component | Fixed-шапка. Логотип, навигация (Home / Scenarios / Video), раскрывающийся поиск, переключатель темы |
-| **CategoryCard.tsx** | Client Component | Карточка с изображением из Supabase Storage или иконкой (Users, Heart, Building2, TrendingUp, TreePine). Поддержка active-статуса |
-| **VideoPlayer.tsx** | Client Component | Кастомные HTML5-контролы: Play/Pause, прогресс-бар (с перемоткой), громкость (слайдер), Mute, Fullscreen. Автоскрытие контролов через 4 сек |
-| **VideoList.tsx** | Client Component | Вертикальный скроллируемый плейлист. Миниатюры, индикатор активного трека, длительность MM:SS |
-| **ThemeToggle.tsx** | Client Component | Кнопка Sun/Moon через `useTheme()`. SSR-safe (mounted-защита) |
-| **Logo.tsx** | Client Component | Два SVG-логотипа: `LogoMonogram` (круг с M) и `LogoText` (M + декоративная линия) |
+**Ключевой момент:** `selectOption` проверяет `children.length === 0`. Если детей нет — автоматически конец квиза, независимо от глубины графа.
 
 ---
 
-## 🔌 API-слой (`app/lib/api.ts`)
+### `app/sections/WelcomeScreen.tsx` — стартовый экран
 
-Все обращения к Supabase централизованы в одном файле:
+| Фича | Описание |
+|------|----------|
+| **Фонарик-эффект** | `img-006.jpg` (шишка на сосне) скрыта под слоем Anthracite. При движении мыши в точке курсора просвечивает фото через `radial-gradient` |
+| **Инерция** | Кружок «фонарика» догоняет курсор с коэффициентом `0.08` (60fps через `requestAnimationFrame`) |
+| **Логотип** | `LogoMonogram` с CSS-анимацией `logoPulse` — пульсация масштаба + размытие + glow Granite |
+| **CTA** | Кнопка «Начать» → `startQuiz()` |
+
+---
+
+### `app/sections/QuestionScreen.tsx` — экран вопроса
+
+| Фича | Описание |
+|------|----------|
+| **Повторяемость** | Монтируется заново на каждом шаге (`key={node.id}`) — Framer Motion делает анимацию входа/выхода автоматически |
+| **Адаптивная сетка** | 2/3/4/5 колонок в зависимости от количества вариантов |
+| **Прогресс** | `QuizProgress` — точки, текущий шаг подсвечен |
+| **Навигация** | «Назад» (если не на старте) + «В начало» |
+
+---
+
+### `app/sections/ResultScreen.tsx` — финальный экран
+
+| Фича | Описание |
+|------|----------|
+| **Видео** | `ResultPlayer` с автостартом и кастомными контролами |
+| **Summary пути** | Строка вида "М → Возвращение домой → Один → Мужчина" |
+| **Повтор** | Кнопка «Пройти заново» → `reset()` |
+
+---
+
+### `app/components/QuizOptionCard.tsx` — карточка варианта
+
+| Фича | Описание |
+|------|----------|
+| **Иконка** | SVG из Supabase Storage (бакет `icon`). Поддерживает полный URL или относительный путь |
+| **Glass-кружок** | Иконка обёрнута в `<div className="icon-glass">` — эффект Liquid Glass |
+| **Fallback** | Если SVG не загрузился (`onError`) — показывает исходное значение поля как текст |
+| **Анимация** | Stagger fade-in (`delay: index * 0.05`) + hover scale |
+
+---
+
+### `app/components/ResultPlayer.tsx` — видеоплеер
+
+| Фича | Описание |
+|------|----------|
+| **Автостарт** | Воспроизведение начинается после события `canplay` |
+| **Контролы** | Play/Pause, прогресс-бар с перемоткой, громкость со слайдером, mute, fullscreen |
+| **Glass UI** | Панель контролов в стиле `.liquid-glass-dark` |
+
+---
+
+### `app/lib/api.ts` — API-слой
+
+Все функции синхронные или асинхронные запросы к Supabase.
 
 | Функция | Описание |
 |---------|----------|
-| `getScenarios()` | Все активные сценарии, сортировка по `order_index` |
-| `getScenarioBySlug(slug)` | Один сценарий по slug |
-| `getVideosByScenario(id)` | Активные видео конкретного сценария |
-| `getAllVideos()` | Все активные видео |
-| `getPhotosByScenario(id)` | Активные фото сценария |
-| `getVideoUrl(path)` | Публичный URL из Storage (bucket `videos`) |
-| `getThumbnailUrl(path)` | Публичный URL из Storage (bucket `thumbnails`) |
-| `getImageUrl(path)` | Публичный URL из Storage (bucket `photos`) |
-
-Клиент Supabase инициализируется в `app/lib/supabase.ts` из переменных окружения.
+| `getNodeById(id)` | Узел по UUID |
+| `getNodeBySlug(slug)` | Узел по slug (уникальное машинное имя) |
+| `getStartNode()` | Стартовый узел (`slug = 'start'`) |
+| `getNextOptions(nodeId)` | Дочерние узлы по связям `quiz_edges`. Если `[]` — лист графа |
+| `getResultByNodeId(nodeId)` | Финальное видео для листа |
+| `getResultByHash(hash)` | Поиск результата по MD5-хешу пути |
+| `getPathNodes(ids[])` | Загрузка узлов по массиву ID (для summary) |
+| `getIconUrl(path)` | Публичный URL из Storage (бакет `icon`) |
 
 ---
 
 ## 🗄️ Схема базы данных (Supabase)
 
-Таблицы:
-
-### `scenarios` — Категории/сценарии
+### `quiz_nodes` — узлы графа
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | uuid | PK |
-| `title` | text | Название категории |
-| `slug` | text | URL-идентификатор |
-| `description` | text | Описание |
-| `image_path` | text | Путь к изображению в Storage (bucket `photos`) |
-| `icon_name` | text | Название иконки (users, heart, building2, trendingUp, treePine) |
-| `ambient_audio_path` | text | Путь к фоновому аудио |
-| `order_index` | int | Порядок сортировки |
-| `active` | boolean | Видимость |
-| `created_at` | timestamptz | Дата создания |
+| `slug` | text | Уникальное машинное имя (`gender_m`, `scenario_home`...) |
+| `label` | text | Текст на кнопке/карточке |
+| `type` | text | `start` / `question` / `option` / `result` |
+| `category` | text | Группировка: `gender`, `scenario`, `company`, `subgender`... |
+| `icon` | text | Путь к SVG-иконке в Storage (бакет `icon`) или полный URL |
+| `image_url` | text | Фоновая картинка карточки |
+| `video_url` | text | Видео-луп для фона карточки |
+| `description` | text | Подсказка под заголовком |
+| `sort_order` | int | Порядок отображения |
+| `is_active` | boolean | Видимость |
 
-### `videos` — Видео
+### `quiz_edges` — связи (ребра графа)
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | uuid | PK |
-| `scenario_id` | uuid | FK → scenarios |
-| `title` | text | Название |
-| `subtitle` | text | Подзаголовок |
-| `storage_path` | text | Путь в Storage (bucket `videos`) |
-| `thumbnail_path` | text | Путь к превью (bucket `thumbnails`) |
-| `duration_sec` | int | Длительность в секундах |
-| `highlights` | text[] | Таймкоды/моменты |
-| `order_index` | int | Порядок |
-| `active` | boolean | Видимость |
-| `created_at` | timestamptz | Дата создания |
+| `from_node_id` | uuid | FK → quiz_nodes (родитель) |
+| `to_node_id` | uuid | FK → quiz_nodes (ребёнок) |
 
-### `photos` — Фотографии
+**Конец квиза определяется автоматически:** если у узла нет исходящих связей — это лист графа.
+
+### `quiz_results` — финальные видео
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | uuid | PK |
-| `scenario_id` | uuid | FK → scenarios |
-| `title` | text | Название |
-| `subtitle` | text | Подзаголовок |
-| `storage_path` | text | Путь в Storage |
-| `order_index` | int | Порядок |
-| `active` | boolean | Видимость |
-| `created_at` | timestamptz | Дата создания |
+| `node_id` | uuid | FK → quiz_nodes (лист графа) |
+| `video_url` | text | Путь к финальному видео в Storage |
+| `poster_url` | text | Превью для плеера |
+| `path_title` | text | Человекочитаемый путь («Мужчина, возвращение домой, один, мужчина») |
+| `path_slugs` | text[] | Массив slug'ов пути |
+| `path_hash` | text | MD5 для быстрого поиска |
+| `title` | text | Заголовок над видео |
+| `description` | text | Описание под видео |
+| `duration` | int | Длительность в секундах |
+
+---
+
+## 🎨 Дизайн-система
+
+### Цветовая палитра (`globals.css`)
+
+| Токен | Hex | Назначение |
+|-------|-----|------------|
+| `--granite` | `#968766` | Брендовый акцент. Кнопки, glow, иконки |
+| `--bg` (dark) | `#28282D` | Anthracite — основной фон квиза |
+| `--bg-deep` (dark) | `#1E1E22` | Глубокий тёмный |
+| `--fg` (dark) | `#FFFFFF` | Основной текст |
+| `--fg-secondary` | `#AEA79A` | Подписи, дескрипторы |
+| `--cloudy` | `#AEA79A` | Вторичный текст |
+| `--jumbo` | `#898B80` | Третичный текст |
+
+### Liquid Glass
+
+4 варианта стеклянных панелей (из `globals.css`):
+- `.liquid-glass` — стандартное (blur 4px)
+- `.liquid-glass-strong` — насыщенное (blur 50px)
+- `.liquid-glass-dark` — тёмное (для контролов плеера)
+- `.icon-glass` — круглый glass-эффект для иконок
+
+### Анимации
+
+| Элемент | Технология | Описание |
+|---------|------------|----------|
+| Переходы экранов | Framer Motion `AnimatePresence` + `key` | Fade/slide при смене `screenType` |
+| Карточки | Framer Motion `stagger` | Появление с задержкой `index * 0.05` |
+| Логотип | CSS `@keyframes logoPulse` | Пульсация масштаба + blur(3px) + glow |
+| Фонарик | `requestAnimationFrame` + lerp | Инерационное следование за курсором (factor 0.08) |
 
 ---
 
 ## ⚙️ Переменные окружения
 
-Создай файл `.env.local` в корне (есть пример `.env.local.example`):
+Файл `.env.local` в корне:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-> `NEXT_PUBLIC_` означает, что переменные доступны на клиенте. Используйте только публичный анонимный ключ.
-
----
-
-## 🎨 Дизайн-система «Liquid Glass»
-
-Реализована в `globals.css`:
-
-- **CSS-переменные** для светлой/тёмной темы (через `data-theme="dark"` на `<html>`)
-- **4 варианта стекла**:
-  - `.liquid-glass` — стандартное
-  - `.liquid-glass-strong` — насыщенное
-  - `.liquid-glass-dark` — тёмное
-  - `.icon-glass` — для иконок
-- **Типографика**: display / headline / title / body / caption / micro
-- **Кнопки**: `.btn-liquid`, `.btn-liquid-filled`
-- **Прогресс-бар**: `.progress-glass-track`
-
-Переключение темы сохраняется в `localStorage` (ключ `mesh-theme`).
+> Обе переменные с префиксом `NEXT_PUBLIC_` — доступны на клиенте. Используйте только публичный анонимный ключ.
 
 ---
 
@@ -213,27 +291,26 @@ bun run dev
 bun run build
 ```
 
-Результат сборки — статические файлы в папке `dist/` (указано в `next.config.ts`).
+Результат — статические файлы в папке `dist/`.
 
-### Доступные скрипты
+### Скрипты
 
 | Скрипт | Команда | Описание |
 |--------|---------|----------|
 | `dev` | `next dev` | Dev-сервер с hot reload |
-| `build` | `next build` | Сборка статического экспорта |
-| `start` | `next start` | Запуск production-сервера (не используется при SSG) |
-| `lint` | `next lint` | Проверка ESLint |
+| `build` | `next build` | Статическая сборка |
+| `start` | `next start` | Production-сервер (не используется при SSG) |
+| `lint` | `next lint` | ESLint |
 
 ---
 
 ## ⚠️ Известные ограничения
 
-1. **Статическая сборка** (`output: "export"`) — нет API Routes, нет серверного рендеринга в runtime.
-2. **Статистика в Hero** — значения (`6 videos`, `46K views`) захардкожены, не связаны с реальными данными БД.
-3. **Нефункциональные кнопки плеера** — `SkipForward` и `Settings2` пока не реализованы.
-4. **Ссылки в Footer** — About, Contacts, Privacy не ведут на реальные страницы (нет роутов).
-5. **Поиск** — фильтрует только по `title` видео, по `subtitle` поиск не работает.
-6. **Изображения** — оптимизация Next.js отключена (`images.unoptimized: true`), необходимо для статического экспорта.
+1. **Статическая сборка** (`output: "export"`) — нет API Routes, нет SSR в runtime.
+2. **Видеоплеер** — кнопки `SkipForward` и `Settings2` не функциональны (заглушки).
+3. **Тема** — сейчас жёстко зафиксирована на `dark`. Переключатель `ThemeToggle` есть в коде, но не используется в интерфейсе.
+4. **Framer Motion на мобильных** — `AnimatePresence` может работать менее плавно на слабых устройствах.
+5. **Supabase Storage** — для статического экспорта все медиа должны быть доступны по публичным URL.
 
 ---
 
