@@ -11,10 +11,10 @@ Configure these variables in Coolify:
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | No | `http://5.129.241.135/supabase` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | No | The remote instance's public anon key |
 | `NEXT_PUBLIC_SITE_URL` | Yes | No | `http://5.129.241.135` |
-| `SUPABASE_INTERNAL_URL` | No | Yes | The remote Kong container URL on port 8000 |
+| `SUPABASE_INTERNAL_URL` | No | Yes | The existing remote Kong gateway URL in Coolify |
 
-The application must share the gateway's Docker network. Expose container port
-80 through Coolify's proxy at `http://5.129.241.135`. Enable auto deployment and
+The gateway URL must be reachable from the application container. Expose container
+port 80 through Coolify's proxy at `http://5.129.241.135`. Enable auto deployment and
 configure a signed GitHub push webhook for this branch.
 
 Develop locally with `bun run dev`. Commit and push changes to
