@@ -26,6 +26,7 @@ export function ResultPlayer({ videoUrl, posterUrl, title }: ResultPlayerProps) 
   const [show, setShow] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [buf, setBuf] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setShow(true);
@@ -47,6 +48,9 @@ export function ResultPlayer({ videoUrl, posterUrl, title }: ResultPlayerProps) 
       ref.current.currentTime = 0;
       setProgress(0);
       setPlaying(false);
+      setError(null);
+      setDuration(0);
+      setBuf(0);
     }
   }, [videoUrl]);
 
@@ -62,9 +66,16 @@ export function ResultPlayer({ videoUrl, posterUrl, title }: ResultPlayerProps) 
   }, [videoUrl]);
 
   const toggle = () => {
-    if (!ref.current) return;
-    playing ? ref.current.pause() : ref.current.play();
-    setPlaying(!playing);
+    const video = ref.current;
+    if (!video) return;
+    if (!video.paused) {
+      video.pause();
+    } else {
+      void video.play().catch(() => {
+        setPlaying(false);
+        setError('Не удалось воспроизвести видео. Попробуйте позже.');
+      });
+    }
     reset();
   };
 
@@ -86,12 +97,25 @@ export function ResultPlayer({ videoUrl, posterUrl, title }: ResultPlayerProps) 
             setBuf(ref.current.buffered.end(0));
         }}
         onLoadedMetadata={() => setDuration(ref.current?.duration || 0)}
+        onPlay={() => { setPlaying(true); setError(null); }}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onError={() => {
+          setPlaying(false);
+          setError('Видео пока недоступно. Попробуйте позже.');
+        }}
         onClick={toggle}
         playsInline
         preload="metadata"
       />
 
-      {!playing && (
+      {error && (
+        <div role="alert" className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center text-white/80 bg-black/60">
+          {error}
+        </div>
+      )}
+
+      {!playing && !error && (
         <button onClick={toggle} className="absolute inset-0 flex items-center justify-center z-10">
           <div className="liquid-glass-strong w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-300">
             <Play size={28} fill="white" className="text-white ml-1" />
@@ -185,7 +209,7 @@ export function ResultPlayer({ videoUrl, posterUrl, title }: ResultPlayerProps) 
                 </div>
               </div>
               <button
-                onClick={() => ref.current?.parentElement?.requestFullscreen()}
+                onClick={() => { void ref.current?.parentElement?.requestFullscreen?.().catch(() => {}); }}
                 className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors"
               >
                 <Maximize2 size={15} />

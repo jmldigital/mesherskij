@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Only the public API and media are exposed; Studio stays behind the gateway.
+    location ~ ^/supabase/(rest/v1|storage/v1|auth/v1|functions/v1)(/|$) {
+        rewrite ^/supabase/(.*)$ /$1 break;
+        proxy_pass ${SUPABASE_INTERNAL_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header apikey $http_apikey;
+        proxy_read_timeout 60s;
+        client_max_body_size 50m;
+    }
+
+    location /supabase/ {
+        return 404;
+    }
+
+    location /_next/static/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+    }
+}
